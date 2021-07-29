@@ -11,7 +11,7 @@ npm install version-check-webpack-plugin --save-dev / yarn add version-check-web
 ```js
 const path = require('path');
 const HTMLWebpackPlugin = require('html-webpack-plugin');
-const VersinoCheckPlugin = require('../index');
+const VersionCheckPlugin = require('version-check-webpack-plugin');
 /**
  * @type {import('webpack').Configuration}
  */
@@ -30,7 +30,7 @@ const webpackConfig = {
         publicPath: '/public'
     },
     plugins: [
-        new VersinoCheckPlugin({
+        new VersionCheckPlugin({
             versionFilename: 'version/current-version.json'
         }),
         new HTMLWebpackPlugin({
