@@ -25,7 +25,7 @@ class VersinoCheckPlugin {
      * @returns {string}
      */
     getPrePath() {
-        return this.options.defualtUpdaterPath;
+        return this.options.updaterPath;
     }
 
     /**
@@ -40,10 +40,10 @@ class VersinoCheckPlugin {
         publicPath = (!publicPath || publicPath === 'auto') ? '' : publicPath;
         try {
             fs.mkdirSync(prePath, { recursive: true });
-            const template = fs.readFileSync(path.resolve(__dirname, './updater-template.js'),
+            const template = fs.readFileSync(path.resolve(__dirname, './updater-template.tpl'),
                 { encoding: 'utf-8'});
             fs.writeFileSync(path.join(prePath, this.updaterName + this.updaterExtension),
-                template.replace('{{versionHashPath}}', publicPath + this.options.versionFilename),
+                template.replace('{{versionHashPath}}', path.join(publicPath, this.options.versionFilename)),
                 { encoding: 'utf-8', flag: 'w'});
         } catch (e) {
             throw e;
@@ -80,7 +80,7 @@ class VersinoCheckPlugin {
             }
             compiler.hooks.thisCompilation.tap(this.name, compilation => {
                 compilation.hooks.afterChunks.tap(this.name, chunks => {
-                    compilation.hooks.afterHash(this.name, () => {
+                    compilation.hooks.afterHash.tap(this.name, () => {
                         const { entry } = compiler.options;
                         const chunkHash = Array.from(chunks);
                         /** @type {{ version: string }} */
