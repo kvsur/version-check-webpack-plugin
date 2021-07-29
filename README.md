@@ -1,5 +1,5 @@
 # version-check-webpack-plugin
-A webpack plugin to generate dynamic versin json file and inject versio check function into frontend dist.
+A webpack plugin to generate dynamic-version json file and inject version-check function into frontend dist assets.
 一个用于给前端代码动态生成版本json文件和注入检测版本脚本的Webpack插件。
 
 ### Usage
