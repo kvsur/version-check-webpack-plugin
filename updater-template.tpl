@@ -1,5 +1,5 @@
 function initial(self) {
-    const cvkey = (0xbc729ba02bd1).toString(36);
+    const cvkey = `__${(0xbc729ba02bd1).toString(36)}_version-check-updater__`;
     const previousVersion = self.localStorage.get(cvkey);
     if (previousVersion === null) {
         fetchVersion().then(versionJson => {
