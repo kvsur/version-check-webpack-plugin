@@ -1,6 +1,6 @@
 function initial(self) {
     const cvkey = `__${(0xbc729ba02bd1).toString(36)}_version-check-updater__`;
-    const previousVersion = self.localStorage.get(cvkey);
+    const previousVersion = self.localStorage.getItem(cvkey);
     if (previousVersion === null) {
         fetchVersion().then(versionJson => {
             self.localStorage.setItem(cvkey, versionJson.version);
@@ -33,8 +33,11 @@ function initial(self) {
         return new Promise((resolve, reject) => {
             fetchVersion().catch(e => reject(e)).then(versionJson => {
                 if (versionJson.version === previousVersion) resolve(false);
-                else if (forceRefresh) self.location.reload();
-                else resolve(true);
+                else {
+                    self.localStorage.setItem(cvkey, versionJson.version);
+                    if (forceRefresh) self.location.reload();
+                    else resolve(true);
+                }
             })
         });
     }
