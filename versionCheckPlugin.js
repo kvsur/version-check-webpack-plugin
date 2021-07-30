@@ -42,8 +42,9 @@ class VersinoCheckPlugin {
             fs.mkdirSync(prePath, { recursive: true });
             const template = fs.readFileSync(path.resolve(__dirname, './updater-template.tpl'),
                 { encoding: 'utf-8'});
+            const jsonFielURL = path.join(publicPath, this.options.versionFilename).replace(/\\/g, '/');
             fs.writeFileSync(path.join(prePath, this.updaterName + this.updaterExtension),
-                template.replace('{{versionHashPath}}', path.join(publicPath, this.options.versionFilename)),
+                template.replace('{{versionHashPath}}', jsonFielURL),
                 { encoding: 'utf-8', flag: 'w'});
         } catch (e) {
             throw e;
