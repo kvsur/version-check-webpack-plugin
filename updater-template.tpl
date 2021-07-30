@@ -1,13 +1,12 @@
 function initial(self) {
     const cvkey = `__${(0xbc729ba02bd1).toString(36)}_version-check-updater__`;
-    const previousVersion = self.localStorage.getItem(cvkey);
-    if (previousVersion === null) {
-        fetchVersion().then(versionJson => {
-            self.localStorage.setItem(cvkey, versionJson.version);
-        }).catch(e => {
-            console.warn(`Do initial check version failed cause: ${e.message || e.toString()}`);
-        })
-    }
+    let previousVersion = '';
+    fetchVersion().then(versionJson => {
+        previousVersion = versionJson.version;
+        self.localStorage.setItem(cvkey, versionJson.version);
+    }).catch(e => {
+        console.warn(`Do initial check version failed cause: ${e.message || e.toString()}`);
+    })
 
     /**
      * Get latest version.
