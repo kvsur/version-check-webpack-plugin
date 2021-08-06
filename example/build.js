@@ -4,7 +4,7 @@ const webpack = require('webpack');
 const config = require('./webpack.config');
 const chalk = require('chalk');
 
-rm(path.resolve(__dirname, 'dist/'), err=> {
+rm(path.resolve(__dirname, 'example/dist/'), err=> {
     if (err) throw err;
     webpack(config, (err, stats) => {
         if (err) throw err;

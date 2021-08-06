@@ -8,9 +8,7 @@ const webpackConfig = {
     mode: 'production',
     context: path.resolve(__dirname, './'),
     entry: {
-        main: {
-            import: ['./src/index.js']
-        },
+        main: './src/index.js',
         vendor: './src/vendor.js'
     },
     output: {
@@ -20,7 +18,8 @@ const webpackConfig = {
     },
     plugins: [
         new VersinoCheckPlugin({
-            versionFilename: 'version/current-version.json'
+            versionFilename: 'version/current-version.json',
+            // entryNeedInjectedUpdater: ['main', 'vendor']
         }),
         new HTMLWebpackPlugin({
             filename: 'index.html',

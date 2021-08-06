@@ -1,23 +1,28 @@
 const path = require('path');
-const exec = require('child_process').execSync;
 const fs = require('fs');
 
 /**
- * @typedef {{ versionFilename?: string }} Options
+ * @typedef {import('./typings').Options} Options
  */
 class VersinoCheckPlugin {
     /**
      * 
      * @param {Options} options 
      */
-    constructor(options) {
+    constructor(options = {}) {
         this.updaterName = 'updater';
         this.updaterExtension = '.js';
-        this.name = 'VersionCheckPlugin';
         const defualtVersionFilename = 'version-hash.json';
-        const defualtUpdaterPath = 'cache-controller';
-        this.options = Object.assign({ versionFilename: defualtVersionFilename, updaterPath: defualtUpdaterPath },
+        this.updaterPath = 'cache-controller';
+        this.options = Object.assign({ versionFilename: defualtVersionFilename },
             options);
+        
+        this.options.entryNeedInjectedUpdater = ['main'];
+        if (typeof options.entryNeedInjectedUpdater === 'string') {
+            this.options.entryNeedInjectedUpdater = [options.entryNeedInjectedUpdater];
+        } else if (Array.isArray(options.entryNeedInjectedUpdater)) {
+            this.options.entryNeedInjectedUpdater = [...options.entryNeedInjectedUpdater];
+        }
     }
 
     /**
@@ -25,7 +30,7 @@ class VersinoCheckPlugin {
      * @returns {string}
      */
     getPrePath() {
-        return this.options.updaterPath;
+        return this.updaterPath;
     }
 
     /**
@@ -33,10 +38,9 @@ class VersinoCheckPlugin {
      * @param {import('webpack').Compiler} compiler 
      */
     generateFile(compiler) {
-        const { context } = compiler;
-        this.options.updaterPath = path.join(context, 'src', this.options.updaterPath);
+        const { options } = compiler;
         const prePath = this.getPrePath();
-        let publicPath = compiler.options.output.publicPath;
+        let publicPath = options.output.publicPath;
         publicPath = (!publicPath || publicPath === 'auto') ? '' : publicPath;
         try {
             fs.mkdirSync(prePath, { recursive: true });
@@ -55,12 +59,34 @@ class VersinoCheckPlugin {
      * Remove updater temp code in src dir.
      */
     removeFile() {
-        const rmCommand = `rm -rf ${this.getPrePath()}`;
         try {
-            exec(rmCommand);
+            fs.unlinkSync(path.join(this.getPrePath(), this.updaterName + this.updaterExtension));
+            fs.rmdirSync(this.getPrePath());
         } catch (e) {
             throw e;
         }
+    }
+
+    /**
+     * 
+     * @param {import('webpack').Compiler} compiler 
+     */
+    getEntryEntries(compiler) {
+        const originEntry = compiler.options.entry;
+        /** @type {import('./typings').EntryEntries} */
+        const entryResult = {};
+        if (typeof originEntry === 'string') entryResult['main'] = originEntry;
+        else if (Array.isArray(originEntry)) entryResult['main'] = originEntry[0];
+        else {
+            const entryKeys = Object.keys(originEntry);
+            entryKeys.forEach(key => {
+                const val = originEntry[key];
+                if (typeof val === 'string') entryResult[key] = val;
+                else if (Array.isArray(val)) entryResult[key] = val[0];
+                else entryResult[key] = val['import'][0];
+            });
+        }
+        return entryResult;
     }
 
     /**
@@ -68,26 +94,53 @@ class VersinoCheckPlugin {
      * @param {import('webpack').Compiler} compiler 
      */
     apply(compiler) {
-        compiler.hooks.afterEnvironment.tap(this.name, () => {
+        const { outputFileSystem, options, context } = compiler;
+        this.updaterPath = path.join(context, 'src', this.updaterPath);
+        compiler.hooks.afterEnvironment.tap(VersinoCheckPlugin.pluginName, () => {
             this.generateFile(compiler);
-            const { outputFileSystem, options } = compiler;
-            const firstEntry = Object.keys(options.entry)[0];
-            // Deal multiple versions of webpack.
-            const newEntryPath = path.join(this.options.updaterPath, this.updaterName + this.updaterExtension);
-            if (typeof options.entry[firstEntry] === 'object' && options.entry[firstEntry].import) {
-                options.entry[this.updaterName] = { import: [newEntryPath]};
-            } else {
-                options.entry[this.updaterName] = newEntryPath;
-            }
-            compiler.hooks.thisCompilation.tap(this.name, compilation => {
-                compilation.hooks.afterChunks.tap(this.name, chunks => {
-                    compilation.hooks.afterHash.tap(this.name, () => {
+            const entryEntries = this.getEntryEntries(compiler);
+            const entryKeys = Object.keys(entryEntries);
+            const entryNeedInjectedUpdaterResource = [];
+            this.options.entryNeedInjectedUpdater.forEach(entryName => {
+                const val = entryEntries[entryName];
+                if (val) entryNeedInjectedUpdaterResource.push(val);
+            });
+            compiler.hooks.thisCompilation.tap(VersinoCheckPlugin.pluginName, compilation => {
+                const originSources = {};
+                const injectModulePath = path.join(this.getPrePath(), this.updaterName + this.updaterExtension);
+                compilation.hooks.buildModule.tap(VersinoCheckPlugin.pluginName, moduleSource => {
+                    if (entryNeedInjectedUpdaterResource.indexOf(moduleSource.rawRequest) >= 0) {
+                        try {
+                            const originSource = fs.readFileSync(moduleSource.resource, {encoding: 'utf-8'});
+                            originSources[moduleSource.rawRequest] = originSource;
+
+                            const injectedSource = 
+                                `\nimport '${injectModulePath.replace(/\\/g, '/')}';\n` + originSource;
+                            fs.writeFileSync(moduleSource.resource, injectedSource, {encoding: 'utf-8'});
+                        } catch (e) {
+                            throw e;
+                        }
+                    }
+                });
+                compilation.hooks.succeedModule.tap(VersinoCheckPlugin.pluginName, moduleSource => {
+                    if (entryNeedInjectedUpdaterResource.indexOf(moduleSource.rawRequest) >= 0) {
+                        try {
+                            fs.writeFileSync(moduleSource.resource, originSources[moduleSource.rawRequest], {
+                                encoding: 'utf-8',
+                            })
+                        } catch (e) {
+                            throw e;
+                        }
+                    }
+                });
+                compilation.hooks.afterChunks.tap(VersinoCheckPlugin.pluginName, chunks => {
+                    compilation.hooks.afterHash.tap(VersinoCheckPlugin.pluginName, () => {
                         const { entry } = compiler.options;
                         const chunkHash = Array.from(chunks);
                         /** @type {{ version: string }} */
                         const versionHash = { version: '' };
                         let versionVal = '';
-                        Object.keys(entry).map(entryName => {
+                        entryKeys.map(entryName => {
                             versionVal += chunkHash.find(({name}) => name === entryName).renderedHash;
                         });
                         versionHash.version = versionVal;
@@ -111,5 +164,8 @@ class VersinoCheckPlugin {
         });
     }
 }
+
+VersinoCheckPlugin.version = 1;
+VersinoCheckPlugin.pluginName = 'VersionCheckPlugin';
 
 module.exports = VersinoCheckPlugin;
