@@ -46,4 +46,4 @@ function initial(self) {
     return versionCheckController;
 }
 
-export default initial(globalThis || window);
+export default initial(window);
