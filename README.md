@@ -37,7 +37,9 @@ const webpackConfig = {
     },
     plugins: [
         new VersionCheckPlugin({
-            versionFilename: 'version/current-version.json'
+            versionFilename: 'version/current-version.json',
+            // entryNeedInjectedUpdater: ['main'], // or next line
+            entryNeedInjectedUpdater: 'main'
         }),
         new HTMLWebpackPlugin({
             filename: 'index.html',
