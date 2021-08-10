@@ -8,6 +8,12 @@ A webpack plugin to generate dynamic-version json file and inject version-check 
 npm install version-check-webpack-plugin --save-dev / yarn add version-check-webpack-plugin -D
 ```
 
+**Options**
+
+```ts
+interface Options { versionFilename?: string, entryNeedInjectedUpdater?: string | [] }
+```
+
 ```js
 const path = require('path');
 const HTMLWebpackPlugin = require('html-webpack-plugin');

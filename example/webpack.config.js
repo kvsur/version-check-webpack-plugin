@@ -19,7 +19,7 @@ const webpackConfig = {
     plugins: [
         new VersinoCheckPlugin({
             versionFilename: 'version/current-version.json',
-            // entryNeedInjectedUpdater: ['main', 'vendor']
+            entryNeedInjectedUpdater: ['main', 'vendor']
         }),
         new HTMLWebpackPlugin({
             filename: 'index.html',
